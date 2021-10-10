@@ -1,0 +1,3 @@
+* Dices for the [[http://heroes.berserk.ru]["Berserk" CCG]] (RU)
+
+Just try the [[https://astynax.github.io/berserk-ru-dices/][live version]].
