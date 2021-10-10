@@ -94,6 +94,190 @@ function A9(fun, a, b, c, d, e, f, g, h, i) {
 
 
 
+// EQUALITY
+
+function _Utils_eq(x, y)
+{
+	for (
+		var pair, stack = [], isEqual = _Utils_eqHelp(x, y, 0, stack);
+		isEqual && (pair = stack.pop());
+		isEqual = _Utils_eqHelp(pair.a, pair.b, 0, stack)
+		)
+	{}
+
+	return isEqual;
+}
+
+function _Utils_eqHelp(x, y, depth, stack)
+{
+	if (x === y)
+	{
+		return true;
+	}
+
+	if (typeof x !== 'object' || x === null || y === null)
+	{
+		typeof x === 'function' && _Debug_crash(5);
+		return false;
+	}
+
+	if (depth > 100)
+	{
+		stack.push(_Utils_Tuple2(x,y));
+		return true;
+	}
+
+	/**_UNUSED/
+	if (x.$ === 'Set_elm_builtin')
+	{
+		x = $elm$core$Set$toList(x);
+		y = $elm$core$Set$toList(y);
+	}
+	if (x.$ === 'RBNode_elm_builtin' || x.$ === 'RBEmpty_elm_builtin')
+	{
+		x = $elm$core$Dict$toList(x);
+		y = $elm$core$Dict$toList(y);
+	}
+	//*/
+
+	/**/
+	if (x.$ < 0)
+	{
+		x = $elm$core$Dict$toList(x);
+		y = $elm$core$Dict$toList(y);
+	}
+	//*/
+
+	for (var key in x)
+	{
+		if (!_Utils_eqHelp(x[key], y[key], depth + 1, stack))
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+var _Utils_equal = F2(_Utils_eq);
+var _Utils_notEqual = F2(function(a, b) { return !_Utils_eq(a,b); });
+
+
+
+// COMPARISONS
+
+// Code in Generate/JavaScript.hs, Basics.js, and List.js depends on
+// the particular integer values assigned to LT, EQ, and GT.
+
+function _Utils_cmp(x, y, ord)
+{
+	if (typeof x !== 'object')
+	{
+		return x === y ? /*EQ*/ 0 : x < y ? /*LT*/ -1 : /*GT*/ 1;
+	}
+
+	/**_UNUSED/
+	if (x instanceof String)
+	{
+		var a = x.valueOf();
+		var b = y.valueOf();
+		return a === b ? 0 : a < b ? -1 : 1;
+	}
+	//*/
+
+	/**/
+	if (typeof x.$ === 'undefined')
+	//*/
+	/**_UNUSED/
+	if (x.$[0] === '#')
+	//*/
+	{
+		return (ord = _Utils_cmp(x.a, y.a))
+			? ord
+			: (ord = _Utils_cmp(x.b, y.b))
+				? ord
+				: _Utils_cmp(x.c, y.c);
+	}
+
+	// traverse conses until end of a list or a mismatch
+	for (; x.b && y.b && !(ord = _Utils_cmp(x.a, y.a)); x = x.b, y = y.b) {} // WHILE_CONSES
+	return ord || (x.b ? /*GT*/ 1 : y.b ? /*LT*/ -1 : /*EQ*/ 0);
+}
+
+var _Utils_lt = F2(function(a, b) { return _Utils_cmp(a, b) < 0; });
+var _Utils_le = F2(function(a, b) { return _Utils_cmp(a, b) < 1; });
+var _Utils_gt = F2(function(a, b) { return _Utils_cmp(a, b) > 0; });
+var _Utils_ge = F2(function(a, b) { return _Utils_cmp(a, b) >= 0; });
+
+var _Utils_compare = F2(function(x, y)
+{
+	var n = _Utils_cmp(x, y);
+	return n < 0 ? $elm$core$Basics$LT : n ? $elm$core$Basics$GT : $elm$core$Basics$EQ;
+});
+
+
+// COMMON VALUES
+
+var _Utils_Tuple0 = 0;
+var _Utils_Tuple0_UNUSED = { $: '#0' };
+
+function _Utils_Tuple2(a, b) { return { a: a, b: b }; }
+function _Utils_Tuple2_UNUSED(a, b) { return { $: '#2', a: a, b: b }; }
+
+function _Utils_Tuple3(a, b, c) { return { a: a, b: b, c: c }; }
+function _Utils_Tuple3_UNUSED(a, b, c) { return { $: '#3', a: a, b: b, c: c }; }
+
+function _Utils_chr(c) { return c; }
+function _Utils_chr_UNUSED(c) { return new String(c); }
+
+
+// RECORDS
+
+function _Utils_update(oldRecord, updatedFields)
+{
+	var newRecord = {};
+
+	for (var key in oldRecord)
+	{
+		newRecord[key] = oldRecord[key];
+	}
+
+	for (var key in updatedFields)
+	{
+		newRecord[key] = updatedFields[key];
+	}
+
+	return newRecord;
+}
+
+
+// APPEND
+
+var _Utils_append = F2(_Utils_ap);
+
+function _Utils_ap(xs, ys)
+{
+	// append Strings
+	if (typeof xs === 'string')
+	{
+		return xs + ys;
+	}
+
+	// append Lists
+	if (!xs.b)
+	{
+		return ys;
+	}
+	var root = _List_Cons(xs.a, ys);
+	xs = xs.b
+	for (var curr = root; xs.b; xs = xs.b) // WHILE_CONS
+	{
+		curr = curr.b = _List_Cons(xs.a, ys);
+	}
+	return root;
+}
+
+
+
 var _List_Nil = { $: 0 };
 var _List_Nil_UNUSED = { $: '[]' };
 
@@ -614,195 +798,11 @@ function _Debug_crash_UNUSED(identifier, fact1, fact2, fact3, fact4)
 
 function _Debug_regionToString(region)
 {
-	if (region.T.G === region._.G)
+	if (region.W.H === region.ac.H)
 	{
-		return 'on line ' + region.T.G;
+		return 'on line ' + region.W.H;
 	}
-	return 'on lines ' + region.T.G + ' through ' + region._.G;
-}
-
-
-
-// EQUALITY
-
-function _Utils_eq(x, y)
-{
-	for (
-		var pair, stack = [], isEqual = _Utils_eqHelp(x, y, 0, stack);
-		isEqual && (pair = stack.pop());
-		isEqual = _Utils_eqHelp(pair.a, pair.b, 0, stack)
-		)
-	{}
-
-	return isEqual;
-}
-
-function _Utils_eqHelp(x, y, depth, stack)
-{
-	if (x === y)
-	{
-		return true;
-	}
-
-	if (typeof x !== 'object' || x === null || y === null)
-	{
-		typeof x === 'function' && _Debug_crash(5);
-		return false;
-	}
-
-	if (depth > 100)
-	{
-		stack.push(_Utils_Tuple2(x,y));
-		return true;
-	}
-
-	/**_UNUSED/
-	if (x.$ === 'Set_elm_builtin')
-	{
-		x = $elm$core$Set$toList(x);
-		y = $elm$core$Set$toList(y);
-	}
-	if (x.$ === 'RBNode_elm_builtin' || x.$ === 'RBEmpty_elm_builtin')
-	{
-		x = $elm$core$Dict$toList(x);
-		y = $elm$core$Dict$toList(y);
-	}
-	//*/
-
-	/**/
-	if (x.$ < 0)
-	{
-		x = $elm$core$Dict$toList(x);
-		y = $elm$core$Dict$toList(y);
-	}
-	//*/
-
-	for (var key in x)
-	{
-		if (!_Utils_eqHelp(x[key], y[key], depth + 1, stack))
-		{
-			return false;
-		}
-	}
-	return true;
-}
-
-var _Utils_equal = F2(_Utils_eq);
-var _Utils_notEqual = F2(function(a, b) { return !_Utils_eq(a,b); });
-
-
-
-// COMPARISONS
-
-// Code in Generate/JavaScript.hs, Basics.js, and List.js depends on
-// the particular integer values assigned to LT, EQ, and GT.
-
-function _Utils_cmp(x, y, ord)
-{
-	if (typeof x !== 'object')
-	{
-		return x === y ? /*EQ*/ 0 : x < y ? /*LT*/ -1 : /*GT*/ 1;
-	}
-
-	/**_UNUSED/
-	if (x instanceof String)
-	{
-		var a = x.valueOf();
-		var b = y.valueOf();
-		return a === b ? 0 : a < b ? -1 : 1;
-	}
-	//*/
-
-	/**/
-	if (typeof x.$ === 'undefined')
-	//*/
-	/**_UNUSED/
-	if (x.$[0] === '#')
-	//*/
-	{
-		return (ord = _Utils_cmp(x.a, y.a))
-			? ord
-			: (ord = _Utils_cmp(x.b, y.b))
-				? ord
-				: _Utils_cmp(x.c, y.c);
-	}
-
-	// traverse conses until end of a list or a mismatch
-	for (; x.b && y.b && !(ord = _Utils_cmp(x.a, y.a)); x = x.b, y = y.b) {} // WHILE_CONSES
-	return ord || (x.b ? /*GT*/ 1 : y.b ? /*LT*/ -1 : /*EQ*/ 0);
-}
-
-var _Utils_lt = F2(function(a, b) { return _Utils_cmp(a, b) < 0; });
-var _Utils_le = F2(function(a, b) { return _Utils_cmp(a, b) < 1; });
-var _Utils_gt = F2(function(a, b) { return _Utils_cmp(a, b) > 0; });
-var _Utils_ge = F2(function(a, b) { return _Utils_cmp(a, b) >= 0; });
-
-var _Utils_compare = F2(function(x, y)
-{
-	var n = _Utils_cmp(x, y);
-	return n < 0 ? $elm$core$Basics$LT : n ? $elm$core$Basics$GT : $elm$core$Basics$EQ;
-});
-
-
-// COMMON VALUES
-
-var _Utils_Tuple0 = 0;
-var _Utils_Tuple0_UNUSED = { $: '#0' };
-
-function _Utils_Tuple2(a, b) { return { a: a, b: b }; }
-function _Utils_Tuple2_UNUSED(a, b) { return { $: '#2', a: a, b: b }; }
-
-function _Utils_Tuple3(a, b, c) { return { a: a, b: b, c: c }; }
-function _Utils_Tuple3_UNUSED(a, b, c) { return { $: '#3', a: a, b: b, c: c }; }
-
-function _Utils_chr(c) { return c; }
-function _Utils_chr_UNUSED(c) { return new String(c); }
-
-
-// RECORDS
-
-function _Utils_update(oldRecord, updatedFields)
-{
-	var newRecord = {};
-
-	for (var key in oldRecord)
-	{
-		newRecord[key] = oldRecord[key];
-	}
-
-	for (var key in updatedFields)
-	{
-		newRecord[key] = updatedFields[key];
-	}
-
-	return newRecord;
-}
-
-
-// APPEND
-
-var _Utils_append = F2(_Utils_ap);
-
-function _Utils_ap(xs, ys)
-{
-	// append Strings
-	if (typeof xs === 'string')
-	{
-		return xs + ys;
-	}
-
-	// append Lists
-	if (!xs.b)
-	{
-		return ys;
-	}
-	var root = _List_Cons(xs.a, ys);
-	xs = xs.b
-	for (var curr = root; xs.b; xs = xs.b) // WHILE_CONS
-	{
-		curr = curr.b = _List_Cons(xs.a, ys);
-	}
-	return root;
+	return 'on lines ' + region.W.H + ' through ' + region.ac.H;
 }
 
 
@@ -1871,9 +1871,9 @@ var _Platform_worker = F4(function(impl, flagDecoder, debugMetadata, args)
 	return _Platform_initialize(
 		flagDecoder,
 		args,
-		impl.aR,
-		impl.a1,
-		impl.aZ,
+		impl.aS,
+		impl.a2,
+		impl.a_,
 		function() { return function() {} }
 	);
 });
@@ -2719,8 +2719,8 @@ var _VirtualDom_mapEventRecord = F2(function(func, record)
 {
 	return {
 		s: func(record.s),
-		U: record.U,
-		Q: record.Q
+		X: record.X,
+		T: record.T
 	}
 });
 
@@ -2989,10 +2989,10 @@ function _VirtualDom_makeCallback(eventNode, initialHandler)
 
 		var value = result.a;
 		var message = !tag ? value : tag < 3 ? value.a : value.s;
-		var stopPropagation = tag == 1 ? value.b : tag == 3 && value.U;
+		var stopPropagation = tag == 1 ? value.b : tag == 3 && value.X;
 		var currentEventNode = (
 			stopPropagation && event.stopPropagation(),
-			(tag == 2 ? value.b : tag == 3 && value.Q) && event.preventDefault(),
+			(tag == 2 ? value.b : tag == 3 && value.T) && event.preventDefault(),
 			eventNode
 		);
 		var tagger;
@@ -3942,11 +3942,11 @@ var _Browser_element = _Debugger_element || F4(function(impl, flagDecoder, debug
 	return _Platform_initialize(
 		flagDecoder,
 		args,
-		impl.aR,
-		impl.a1,
-		impl.aZ,
+		impl.aS,
+		impl.a2,
+		impl.a_,
 		function(sendToApp, initialModel) {
-			var view = impl.a2;
+			var view = impl.a3;
 			/**/
 			var domNode = args['node'];
 			//*/
@@ -3978,12 +3978,12 @@ var _Browser_document = _Debugger_document || F4(function(impl, flagDecoder, deb
 	return _Platform_initialize(
 		flagDecoder,
 		args,
-		impl.aR,
-		impl.a1,
-		impl.aZ,
+		impl.aS,
+		impl.a2,
+		impl.a_,
 		function(sendToApp, initialModel) {
-			var divertHrefToApp = impl.S && impl.S(sendToApp)
-			var view = impl.a2;
+			var divertHrefToApp = impl.V && impl.V(sendToApp)
+			var view = impl.a3;
 			var title = _VirtualDom_doc.title;
 			var bodyNode = _VirtualDom_doc.body;
 			var currNode = _VirtualDom_virtualize(bodyNode);
@@ -3991,12 +3991,12 @@ var _Browser_document = _Debugger_document || F4(function(impl, flagDecoder, deb
 			{
 				_VirtualDom_divertHrefToApp = divertHrefToApp;
 				var doc = view(model);
-				var nextNode = _VirtualDom_node('body')(_List_Nil)(doc.aG);
+				var nextNode = _VirtualDom_node('body')(_List_Nil)(doc.aH);
 				var patches = _VirtualDom_diff(currNode, nextNode);
 				bodyNode = _VirtualDom_applyPatches(bodyNode, currNode, patches, sendToApp);
 				currNode = nextNode;
 				_VirtualDom_divertHrefToApp = 0;
-				(title !== doc.a$) && (_VirtualDom_doc.title = title = doc.a$);
+				(title !== doc.a0) && (_VirtualDom_doc.title = title = doc.a0);
 			});
 		}
 	);
@@ -4052,12 +4052,12 @@ function _Browser_makeAnimator(model, draw)
 
 function _Browser_application(impl)
 {
-	var onUrlChange = impl.aT;
-	var onUrlRequest = impl.aU;
+	var onUrlChange = impl.aU;
+	var onUrlRequest = impl.aV;
 	var key = function() { key.a(onUrlChange(_Browser_getUrl())); };
 
 	return _Browser_document({
-		S: function(sendToApp)
+		V: function(sendToApp)
 		{
 			key.a = sendToApp;
 			_Browser_window.addEventListener('popstate', key);
@@ -4073,9 +4073,9 @@ function _Browser_application(impl)
 					var next = $elm$url$Url$fromString(href).a;
 					sendToApp(onUrlRequest(
 						(next
-							&& curr.ap === next.ap
-							&& curr.ad === next.ad
-							&& curr.am.a === next.am.a
+							&& curr.ar === next.ar
+							&& curr.af === next.af
+							&& curr.ao.a === next.ao.a
 						)
 							? $elm$browser$Browser$Internal(next)
 							: $elm$browser$Browser$External(href)
@@ -4083,13 +4083,13 @@ function _Browser_application(impl)
 				}
 			});
 		},
-		aR: function(flags)
+		aS: function(flags)
 		{
-			return A3(impl.aR, flags, _Browser_getUrl(), key);
+			return A3(impl.aS, flags, _Browser_getUrl(), key);
 		},
+		a3: impl.a3,
 		a2: impl.a2,
-		a1: impl.a1,
-		aZ: impl.aZ
+		a_: impl.a_
 	});
 }
 
@@ -4155,17 +4155,17 @@ var _Browser_decodeEvent = F2(function(decoder, event)
 function _Browser_visibilityInfo()
 {
 	return (typeof _VirtualDom_doc.hidden !== 'undefined')
-		? { aP: 'hidden', aH: 'visibilitychange' }
+		? { aQ: 'hidden', aI: 'visibilitychange' }
 		:
 	(typeof _VirtualDom_doc.mozHidden !== 'undefined')
-		? { aP: 'mozHidden', aH: 'mozvisibilitychange' }
+		? { aQ: 'mozHidden', aI: 'mozvisibilitychange' }
 		:
 	(typeof _VirtualDom_doc.msHidden !== 'undefined')
-		? { aP: 'msHidden', aH: 'msvisibilitychange' }
+		? { aQ: 'msHidden', aI: 'msvisibilitychange' }
 		:
 	(typeof _VirtualDom_doc.webkitHidden !== 'undefined')
-		? { aP: 'webkitHidden', aH: 'webkitvisibilitychange' }
-		: { aP: 'hidden', aH: 'visibilitychange' };
+		? { aQ: 'webkitHidden', aI: 'webkitvisibilitychange' }
+		: { aQ: 'hidden', aI: 'visibilitychange' };
 }
 
 
@@ -4246,12 +4246,12 @@ var _Browser_call = F2(function(functionName, id)
 function _Browser_getViewport()
 {
 	return {
-		aw: _Browser_getScene(),
-		aA: {
-			aC: _Browser_window.pageXOffset,
-			aD: _Browser_window.pageYOffset,
-			aB: _Browser_doc.documentElement.clientWidth,
-			ac: _Browser_doc.documentElement.clientHeight
+		ay: _Browser_getScene(),
+		aC: {
+			aD: _Browser_window.pageXOffset,
+			aE: _Browser_window.pageYOffset,
+			M: _Browser_doc.documentElement.clientWidth,
+			G: _Browser_doc.documentElement.clientHeight
 		}
 	};
 }
@@ -4261,8 +4261,8 @@ function _Browser_getScene()
 	var body = _Browser_doc.body;
 	var elem = _Browser_doc.documentElement;
 	return {
-		aB: Math.max(body.scrollWidth, body.offsetWidth, elem.scrollWidth, elem.offsetWidth, elem.clientWidth),
-		ac: Math.max(body.scrollHeight, body.offsetHeight, elem.scrollHeight, elem.offsetHeight, elem.clientHeight)
+		M: Math.max(body.scrollWidth, body.offsetWidth, elem.scrollWidth, elem.offsetWidth, elem.clientWidth),
+		G: Math.max(body.scrollHeight, body.offsetHeight, elem.scrollHeight, elem.offsetHeight, elem.clientHeight)
 	};
 }
 
@@ -4285,15 +4285,15 @@ function _Browser_getViewportOf(id)
 	return _Browser_withNode(id, function(node)
 	{
 		return {
-			aw: {
-				aB: node.scrollWidth,
-				ac: node.scrollHeight
+			ay: {
+				M: node.scrollWidth,
+				G: node.scrollHeight
 			},
-			aA: {
-				aC: node.scrollLeft,
-				aD: node.scrollTop,
-				aB: node.clientWidth,
-				ac: node.clientHeight
+			aC: {
+				aD: node.scrollLeft,
+				aE: node.scrollTop,
+				M: node.clientWidth,
+				G: node.clientHeight
 			}
 		};
 	});
@@ -4323,18 +4323,18 @@ function _Browser_getElement(id)
 		var x = _Browser_window.pageXOffset;
 		var y = _Browser_window.pageYOffset;
 		return {
-			aw: _Browser_getScene(),
-			aA: {
-				aC: x,
-				aD: y,
-				aB: _Browser_doc.documentElement.clientWidth,
-				ac: _Browser_doc.documentElement.clientHeight
+			ay: _Browser_getScene(),
+			aC: {
+				aD: x,
+				aE: y,
+				M: _Browser_doc.documentElement.clientWidth,
+				G: _Browser_doc.documentElement.clientHeight
 			},
-			aK: {
-				aC: x + rect.left,
-				aD: y + rect.top,
-				aB: rect.width,
-				ac: rect.height
+			aL: {
+				aD: x + rect.left,
+				aE: y + rect.top,
+				M: rect.width,
+				G: rect.height
 			}
 		};
 	});
@@ -4452,33 +4452,22 @@ function _Time_getZoneName()
 		callback(_Scheduler_succeed(name));
 	});
 }
+var $author$project$Main$Resize = F2(
+	function (a, b) {
+		return {$: 1, a: a, b: b};
+	});
+var $elm$core$Basics$always = F2(
+	function (a, _v0) {
+		return a;
+	});
+var $elm$core$Basics$apL = F2(
+	function (f, x) {
+		return f(x);
+	});
 var $elm$core$Basics$EQ = 1;
+var $elm$core$Basics$GT = 2;
 var $elm$core$Basics$LT = 0;
 var $elm$core$List$cons = _List_cons;
-var $elm$core$Elm$JsArray$foldr = _JsArray_foldr;
-var $elm$core$Array$foldr = F3(
-	function (func, baseCase, _v0) {
-		var tree = _v0.c;
-		var tail = _v0.d;
-		var helper = F2(
-			function (node, acc) {
-				if (!node.$) {
-					var subTree = node.a;
-					return A3($elm$core$Elm$JsArray$foldr, helper, acc, subTree);
-				} else {
-					var values = node.a;
-					return A3($elm$core$Elm$JsArray$foldr, func, acc, values);
-				}
-			});
-		return A3(
-			$elm$core$Elm$JsArray$foldr,
-			helper,
-			A3($elm$core$Elm$JsArray$foldr, func, baseCase, tail),
-			tree);
-	});
-var $elm$core$Array$toList = function (array) {
-	return A3($elm$core$Array$foldr, $elm$core$List$cons, _List_Nil, array);
-};
 var $elm$core$Dict$foldr = F3(
 	function (func, acc, t) {
 		foldr:
@@ -4531,8 +4520,30 @@ var $elm$core$Set$toList = function (_v0) {
 	var dict = _v0;
 	return $elm$core$Dict$keys(dict);
 };
-var $elm$core$Basics$GT = 2;
-var $elm$core$Maybe$Nothing = {$: 1};
+var $elm$core$Elm$JsArray$foldr = _JsArray_foldr;
+var $elm$core$Array$foldr = F3(
+	function (func, baseCase, _v0) {
+		var tree = _v0.c;
+		var tail = _v0.d;
+		var helper = F2(
+			function (node, acc) {
+				if (!node.$) {
+					var subTree = node.a;
+					return A3($elm$core$Elm$JsArray$foldr, helper, acc, subTree);
+				} else {
+					var values = node.a;
+					return A3($elm$core$Elm$JsArray$foldr, func, acc, values);
+				}
+			});
+		return A3(
+			$elm$core$Elm$JsArray$foldr,
+			helper,
+			A3($elm$core$Elm$JsArray$foldr, func, baseCase, tail),
+			tree);
+	});
+var $elm$core$Array$toList = function (array) {
+	return A3($elm$core$Array$foldr, $elm$core$List$cons, _List_Nil, array);
+};
 var $elm$core$Result$Err = function (a) {
 	return {$: 1, a: a};
 };
@@ -4559,6 +4570,7 @@ var $elm$core$Basics$add = _Basics_add;
 var $elm$core$Maybe$Just = function (a) {
 	return {$: 0, a: a};
 };
+var $elm$core$Maybe$Nothing = {$: 1};
 var $elm$core$String$all = _String_all;
 var $elm$core$Basics$and = _Basics_and;
 var $elm$core$Basics$append = _Utils_append;
@@ -4793,10 +4805,6 @@ var $elm$core$Elm$JsArray$initialize = _JsArray_initialize;
 var $elm$core$Array$Leaf = function (a) {
 	return {$: 1, a: a};
 };
-var $elm$core$Basics$apL = F2(
-	function (f, x) {
-		return f(x);
-	});
 var $elm$core$Basics$apR = F2(
 	function (x, f) {
 		return f(x);
@@ -4956,7 +4964,7 @@ var $elm$url$Url$Http = 0;
 var $elm$url$Url$Https = 1;
 var $elm$url$Url$Url = F6(
 	function (protocol, host, port_, path, query, fragment) {
-		return {ab: fragment, ad: host, ak: path, am: port_, ap: protocol, aq: query};
+		return {ae: fragment, af: host, am: path, ao: port_, ar: protocol, as: query};
 	});
 var $elm$core$String$contains = _String_contains;
 var $elm$core$String$length = _String_length;
@@ -5235,10 +5243,433 @@ var $elm$core$Task$perform = F2(
 			A2($elm$core$Task$map, toMessage, task));
 	});
 var $elm$browser$Browser$document = _Browser_document;
-var $elm$core$Platform$Cmd$batch = _Platform_batch;
-var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
-var $elm$core$Platform$Sub$batch = _Platform_batch;
-var $elm$core$Platform$Sub$none = $elm$core$Platform$Sub$batch(_List_Nil);
+var $elm$browser$Browser$Dom$getViewport = _Browser_withWindow(_Browser_getViewport);
+var $author$project$Main$init = function (_v0) {
+	return _Utils_Tuple2(
+		{G: 300, N: $elm$core$Maybe$Nothing, M: 200},
+		A2(
+			$elm$core$Task$perform,
+			function (vp) {
+				return A2($author$project$Main$Resize, vp.aC.M, vp.aC.G);
+			},
+			$elm$browser$Browser$Dom$getViewport));
+};
+var $elm$browser$Browser$Events$Window = 1;
+var $elm$json$Json$Decode$field = _Json_decodeField;
+var $elm$json$Json$Decode$int = _Json_decodeInt;
+var $elm$browser$Browser$Events$MySub = F3(
+	function (a, b, c) {
+		return {$: 0, a: a, b: b, c: c};
+	});
+var $elm$browser$Browser$Events$State = F2(
+	function (subs, pids) {
+		return {an: pids, aA: subs};
+	});
+var $elm$core$Dict$RBEmpty_elm_builtin = {$: -2};
+var $elm$core$Dict$empty = $elm$core$Dict$RBEmpty_elm_builtin;
+var $elm$browser$Browser$Events$init = $elm$core$Task$succeed(
+	A2($elm$browser$Browser$Events$State, _List_Nil, $elm$core$Dict$empty));
+var $elm$browser$Browser$Events$nodeToKey = function (node) {
+	if (!node) {
+		return 'd_';
+	} else {
+		return 'w_';
+	}
+};
+var $elm$browser$Browser$Events$addKey = function (sub) {
+	var node = sub.a;
+	var name = sub.b;
+	return _Utils_Tuple2(
+		_Utils_ap(
+			$elm$browser$Browser$Events$nodeToKey(node),
+			name),
+		sub);
+};
+var $elm$core$Dict$Black = 1;
+var $elm$core$Dict$RBNode_elm_builtin = F5(
+	function (a, b, c, d, e) {
+		return {$: -1, a: a, b: b, c: c, d: d, e: e};
+	});
+var $elm$core$Dict$Red = 0;
+var $elm$core$Dict$balance = F5(
+	function (color, key, value, left, right) {
+		if ((right.$ === -1) && (!right.a)) {
+			var _v1 = right.a;
+			var rK = right.b;
+			var rV = right.c;
+			var rLeft = right.d;
+			var rRight = right.e;
+			if ((left.$ === -1) && (!left.a)) {
+				var _v3 = left.a;
+				var lK = left.b;
+				var lV = left.c;
+				var lLeft = left.d;
+				var lRight = left.e;
+				return A5(
+					$elm$core$Dict$RBNode_elm_builtin,
+					0,
+					key,
+					value,
+					A5($elm$core$Dict$RBNode_elm_builtin, 1, lK, lV, lLeft, lRight),
+					A5($elm$core$Dict$RBNode_elm_builtin, 1, rK, rV, rLeft, rRight));
+			} else {
+				return A5(
+					$elm$core$Dict$RBNode_elm_builtin,
+					color,
+					rK,
+					rV,
+					A5($elm$core$Dict$RBNode_elm_builtin, 0, key, value, left, rLeft),
+					rRight);
+			}
+		} else {
+			if ((((left.$ === -1) && (!left.a)) && (left.d.$ === -1)) && (!left.d.a)) {
+				var _v5 = left.a;
+				var lK = left.b;
+				var lV = left.c;
+				var _v6 = left.d;
+				var _v7 = _v6.a;
+				var llK = _v6.b;
+				var llV = _v6.c;
+				var llLeft = _v6.d;
+				var llRight = _v6.e;
+				var lRight = left.e;
+				return A5(
+					$elm$core$Dict$RBNode_elm_builtin,
+					0,
+					lK,
+					lV,
+					A5($elm$core$Dict$RBNode_elm_builtin, 1, llK, llV, llLeft, llRight),
+					A5($elm$core$Dict$RBNode_elm_builtin, 1, key, value, lRight, right));
+			} else {
+				return A5($elm$core$Dict$RBNode_elm_builtin, color, key, value, left, right);
+			}
+		}
+	});
+var $elm$core$Basics$compare = _Utils_compare;
+var $elm$core$Dict$insertHelp = F3(
+	function (key, value, dict) {
+		if (dict.$ === -2) {
+			return A5($elm$core$Dict$RBNode_elm_builtin, 0, key, value, $elm$core$Dict$RBEmpty_elm_builtin, $elm$core$Dict$RBEmpty_elm_builtin);
+		} else {
+			var nColor = dict.a;
+			var nKey = dict.b;
+			var nValue = dict.c;
+			var nLeft = dict.d;
+			var nRight = dict.e;
+			var _v1 = A2($elm$core$Basics$compare, key, nKey);
+			switch (_v1) {
+				case 0:
+					return A5(
+						$elm$core$Dict$balance,
+						nColor,
+						nKey,
+						nValue,
+						A3($elm$core$Dict$insertHelp, key, value, nLeft),
+						nRight);
+				case 1:
+					return A5($elm$core$Dict$RBNode_elm_builtin, nColor, nKey, value, nLeft, nRight);
+				default:
+					return A5(
+						$elm$core$Dict$balance,
+						nColor,
+						nKey,
+						nValue,
+						nLeft,
+						A3($elm$core$Dict$insertHelp, key, value, nRight));
+			}
+		}
+	});
+var $elm$core$Dict$insert = F3(
+	function (key, value, dict) {
+		var _v0 = A3($elm$core$Dict$insertHelp, key, value, dict);
+		if ((_v0.$ === -1) && (!_v0.a)) {
+			var _v1 = _v0.a;
+			var k = _v0.b;
+			var v = _v0.c;
+			var l = _v0.d;
+			var r = _v0.e;
+			return A5($elm$core$Dict$RBNode_elm_builtin, 1, k, v, l, r);
+		} else {
+			var x = _v0;
+			return x;
+		}
+	});
+var $elm$core$Dict$fromList = function (assocs) {
+	return A3(
+		$elm$core$List$foldl,
+		F2(
+			function (_v0, dict) {
+				var key = _v0.a;
+				var value = _v0.b;
+				return A3($elm$core$Dict$insert, key, value, dict);
+			}),
+		$elm$core$Dict$empty,
+		assocs);
+};
+var $elm$core$Process$kill = _Scheduler_kill;
+var $elm$core$Dict$foldl = F3(
+	function (func, acc, dict) {
+		foldl:
+		while (true) {
+			if (dict.$ === -2) {
+				return acc;
+			} else {
+				var key = dict.b;
+				var value = dict.c;
+				var left = dict.d;
+				var right = dict.e;
+				var $temp$func = func,
+					$temp$acc = A3(
+					func,
+					key,
+					value,
+					A3($elm$core$Dict$foldl, func, acc, left)),
+					$temp$dict = right;
+				func = $temp$func;
+				acc = $temp$acc;
+				dict = $temp$dict;
+				continue foldl;
+			}
+		}
+	});
+var $elm$core$Dict$merge = F6(
+	function (leftStep, bothStep, rightStep, leftDict, rightDict, initialResult) {
+		var stepState = F3(
+			function (rKey, rValue, _v0) {
+				stepState:
+				while (true) {
+					var list = _v0.a;
+					var result = _v0.b;
+					if (!list.b) {
+						return _Utils_Tuple2(
+							list,
+							A3(rightStep, rKey, rValue, result));
+					} else {
+						var _v2 = list.a;
+						var lKey = _v2.a;
+						var lValue = _v2.b;
+						var rest = list.b;
+						if (_Utils_cmp(lKey, rKey) < 0) {
+							var $temp$rKey = rKey,
+								$temp$rValue = rValue,
+								$temp$_v0 = _Utils_Tuple2(
+								rest,
+								A3(leftStep, lKey, lValue, result));
+							rKey = $temp$rKey;
+							rValue = $temp$rValue;
+							_v0 = $temp$_v0;
+							continue stepState;
+						} else {
+							if (_Utils_cmp(lKey, rKey) > 0) {
+								return _Utils_Tuple2(
+									list,
+									A3(rightStep, rKey, rValue, result));
+							} else {
+								return _Utils_Tuple2(
+									rest,
+									A4(bothStep, lKey, lValue, rValue, result));
+							}
+						}
+					}
+				}
+			});
+		var _v3 = A3(
+			$elm$core$Dict$foldl,
+			stepState,
+			_Utils_Tuple2(
+				$elm$core$Dict$toList(leftDict),
+				initialResult),
+			rightDict);
+		var leftovers = _v3.a;
+		var intermediateResult = _v3.b;
+		return A3(
+			$elm$core$List$foldl,
+			F2(
+				function (_v4, result) {
+					var k = _v4.a;
+					var v = _v4.b;
+					return A3(leftStep, k, v, result);
+				}),
+			intermediateResult,
+			leftovers);
+	});
+var $elm$browser$Browser$Events$Event = F2(
+	function (key, event) {
+		return {ad: event, ai: key};
+	});
+var $elm$core$Platform$sendToSelf = _Platform_sendToSelf;
+var $elm$browser$Browser$Events$spawn = F3(
+	function (router, key, _v0) {
+		var node = _v0.a;
+		var name = _v0.b;
+		var actualNode = function () {
+			if (!node) {
+				return _Browser_doc;
+			} else {
+				return _Browser_window;
+			}
+		}();
+		return A2(
+			$elm$core$Task$map,
+			function (value) {
+				return _Utils_Tuple2(key, value);
+			},
+			A3(
+				_Browser_on,
+				actualNode,
+				name,
+				function (event) {
+					return A2(
+						$elm$core$Platform$sendToSelf,
+						router,
+						A2($elm$browser$Browser$Events$Event, key, event));
+				}));
+	});
+var $elm$core$Dict$union = F2(
+	function (t1, t2) {
+		return A3($elm$core$Dict$foldl, $elm$core$Dict$insert, t2, t1);
+	});
+var $elm$browser$Browser$Events$onEffects = F3(
+	function (router, subs, state) {
+		var stepRight = F3(
+			function (key, sub, _v6) {
+				var deads = _v6.a;
+				var lives = _v6.b;
+				var news = _v6.c;
+				return _Utils_Tuple3(
+					deads,
+					lives,
+					A2(
+						$elm$core$List$cons,
+						A3($elm$browser$Browser$Events$spawn, router, key, sub),
+						news));
+			});
+		var stepLeft = F3(
+			function (_v4, pid, _v5) {
+				var deads = _v5.a;
+				var lives = _v5.b;
+				var news = _v5.c;
+				return _Utils_Tuple3(
+					A2($elm$core$List$cons, pid, deads),
+					lives,
+					news);
+			});
+		var stepBoth = F4(
+			function (key, pid, _v2, _v3) {
+				var deads = _v3.a;
+				var lives = _v3.b;
+				var news = _v3.c;
+				return _Utils_Tuple3(
+					deads,
+					A3($elm$core$Dict$insert, key, pid, lives),
+					news);
+			});
+		var newSubs = A2($elm$core$List$map, $elm$browser$Browser$Events$addKey, subs);
+		var _v0 = A6(
+			$elm$core$Dict$merge,
+			stepLeft,
+			stepBoth,
+			stepRight,
+			state.an,
+			$elm$core$Dict$fromList(newSubs),
+			_Utils_Tuple3(_List_Nil, $elm$core$Dict$empty, _List_Nil));
+		var deadPids = _v0.a;
+		var livePids = _v0.b;
+		var makeNewPids = _v0.c;
+		return A2(
+			$elm$core$Task$andThen,
+			function (pids) {
+				return $elm$core$Task$succeed(
+					A2(
+						$elm$browser$Browser$Events$State,
+						newSubs,
+						A2(
+							$elm$core$Dict$union,
+							livePids,
+							$elm$core$Dict$fromList(pids))));
+			},
+			A2(
+				$elm$core$Task$andThen,
+				function (_v1) {
+					return $elm$core$Task$sequence(makeNewPids);
+				},
+				$elm$core$Task$sequence(
+					A2($elm$core$List$map, $elm$core$Process$kill, deadPids))));
+	});
+var $elm$core$List$maybeCons = F3(
+	function (f, mx, xs) {
+		var _v0 = f(mx);
+		if (!_v0.$) {
+			var x = _v0.a;
+			return A2($elm$core$List$cons, x, xs);
+		} else {
+			return xs;
+		}
+	});
+var $elm$core$List$filterMap = F2(
+	function (f, xs) {
+		return A3(
+			$elm$core$List$foldr,
+			$elm$core$List$maybeCons(f),
+			_List_Nil,
+			xs);
+	});
+var $elm$browser$Browser$Events$onSelfMsg = F3(
+	function (router, _v0, state) {
+		var key = _v0.ai;
+		var event = _v0.ad;
+		var toMessage = function (_v2) {
+			var subKey = _v2.a;
+			var _v3 = _v2.b;
+			var node = _v3.a;
+			var name = _v3.b;
+			var decoder = _v3.c;
+			return _Utils_eq(subKey, key) ? A2(_Browser_decodeEvent, decoder, event) : $elm$core$Maybe$Nothing;
+		};
+		var messages = A2($elm$core$List$filterMap, toMessage, state.aA);
+		return A2(
+			$elm$core$Task$andThen,
+			function (_v1) {
+				return $elm$core$Task$succeed(state);
+			},
+			$elm$core$Task$sequence(
+				A2(
+					$elm$core$List$map,
+					$elm$core$Platform$sendToApp(router),
+					messages)));
+	});
+var $elm$browser$Browser$Events$subMap = F2(
+	function (func, _v0) {
+		var node = _v0.a;
+		var name = _v0.b;
+		var decoder = _v0.c;
+		return A3(
+			$elm$browser$Browser$Events$MySub,
+			node,
+			name,
+			A2($elm$json$Json$Decode$map, func, decoder));
+	});
+_Platform_effectManagers['Browser.Events'] = _Platform_createManager($elm$browser$Browser$Events$init, $elm$browser$Browser$Events$onEffects, $elm$browser$Browser$Events$onSelfMsg, 0, $elm$browser$Browser$Events$subMap);
+var $elm$browser$Browser$Events$subscription = _Platform_leaf('Browser.Events');
+var $elm$browser$Browser$Events$on = F3(
+	function (node, name, decoder) {
+		return $elm$browser$Browser$Events$subscription(
+			A3($elm$browser$Browser$Events$MySub, node, name, decoder));
+	});
+var $elm$browser$Browser$Events$onResize = function (func) {
+	return A3(
+		$elm$browser$Browser$Events$on,
+		1,
+		'resize',
+		A2(
+			$elm$json$Json$Decode$field,
+			'target',
+			A3(
+				$elm$json$Json$Decode$map2,
+				func,
+				A2($elm$json$Json$Decode$field, 'innerWidth', $elm$json$Json$Decode$int),
+				A2($elm$json$Json$Decode$field, 'innerHeight', $elm$json$Json$Decode$int))));
+};
 var $author$project$Main$Set = function (a) {
 	return {$: 0, a: a};
 };
@@ -5345,6 +5776,8 @@ var $elm$random$Random$generate = F2(
 		return $elm$random$Random$command(
 			A2($elm$random$Random$map, tagger, generator));
 	});
+var $elm$core$Platform$Cmd$batch = _Platform_batch;
+var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
 var $author$project$Main$MediumStrike = 1;
 var $author$project$Main$Strike = function (a) {
 	return {$: 0, a: a};
@@ -5468,10 +5901,22 @@ var $author$project$Main$throw = A2(
 var $author$project$Main$update = F2(
 	function (msg, model) {
 		switch (msg.$) {
+			case 1:
+				var w = msg.a;
+				var h = msg.b;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{G: h - 10, M: w}),
+					$elm$core$Platform$Cmd$none);
 			case 0:
 				var value = msg.a;
-				return _Utils_Tuple2(value, $elm$core$Platform$Cmd$none);
-			case 1:
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{N: value}),
+					$elm$core$Platform$Cmd$none);
+			case 2:
 				return _Utils_Tuple2(
 					model,
 					A2(
@@ -5524,8 +5969,8 @@ var $elm$core$Basics$cos = _Basics_cos;
 var $elm$core$Basics$sin = _Basics_sin;
 var $timjs$elm_collage$Collage$Core$apply = function (_v0) {
 	var shift = _v0.C;
-	var scale = _v0.av;
-	var rotation = _v0.at;
+	var scale = _v0.ax;
+	var rotation = _v0.av;
 	var rotated = function (_v5) {
 		var x = _v5.a;
 		var y = _v5.b;
@@ -5697,7 +6142,7 @@ var $timjs$elm_collage$Collage$Layout$handleBasic = function (basic) {
 				switch (basic.b.$) {
 					case 3:
 						var _v1 = basic.a;
-						var thickness = _v1.b.a_;
+						var thickness = _v1.b.a$;
 						var r = basic.b.a;
 						var d = 2 * r;
 						return A2(
@@ -5706,7 +6151,7 @@ var $timjs$elm_collage$Collage$Layout$handleBasic = function (basic) {
 							_Utils_Tuple2(d, d));
 					case 2:
 						var _v2 = basic.a;
-						var thickness = _v2.b.a_;
+						var thickness = _v2.b.a$;
 						var _v3 = basic.b;
 						var rx = _v3.a;
 						var ry = _v3.b;
@@ -5716,7 +6161,7 @@ var $timjs$elm_collage$Collage$Layout$handleBasic = function (basic) {
 							_Utils_Tuple2(2 * rx, 2 * ry));
 					case 1:
 						var _v4 = basic.a;
-						var thickness = _v4.b.a_;
+						var thickness = _v4.b.a$;
 						var _v5 = basic.b;
 						var w = _v5.a;
 						var h = _v5.b;
@@ -5726,7 +6171,7 @@ var $timjs$elm_collage$Collage$Layout$handleBasic = function (basic) {
 							_Utils_Tuple2(w, h));
 					case 0:
 						var _v6 = basic.a;
-						var thickness = _v6.b.a_;
+						var thickness = _v6.b.a$;
 						var ps = basic.b.a;
 						return A2($timjs$elm_collage$Collage$Layout$handlePoints, thickness, ps);
 					default:
@@ -5738,8 +6183,8 @@ var $timjs$elm_collage$Collage$Layout$handleBasic = function (basic) {
 						continue handleBasic;
 				}
 			case 1:
-				var thickness = basic.a.a_;
-				var cap = basic.a.W;
+				var thickness = basic.a.a$;
+				var cap = basic.a.Z;
 				var ps = basic.b;
 				return A2(
 					$timjs$elm_collage$Collage$Layout$handlePoints,
@@ -5800,6 +6245,28 @@ var $elm$html$Html$Attributes$href = function (url) {
 		'href',
 		_VirtualDom_noJavaScriptUri(url));
 };
+var $timjs$elm_collage$Collage$Core$Html = F3(
+	function (a, b, c) {
+		return {$: 4, a: a, b: b, c: c};
+	});
+var $timjs$elm_collage$Collage$Core$collage = function (basic) {
+	return {
+		A: basic,
+		aO: _List_Nil,
+		aT: $elm$core$Maybe$Nothing,
+		aW: 1,
+		av: 0,
+		ax: _Utils_Tuple2(1, 1),
+		C: _Utils_Tuple2(0, 0)
+	};
+};
+var $timjs$elm_collage$Collage$html = F2(
+	function (dims, attrs) {
+		return A2(
+			$elm$core$Basics$composeL,
+			$timjs$elm_collage$Collage$Core$collage,
+			A2($timjs$elm_collage$Collage$Core$Html, dims, attrs));
+	});
 var $elm$core$Maybe$map = F2(
 	function (f, maybe) {
 		if (!maybe.$) {
@@ -5810,39 +6277,53 @@ var $elm$core$Maybe$map = F2(
 			return $elm$core$Maybe$Nothing;
 		}
 	});
-var $author$project$Main$ThrowOne = {$: 1};
-var $author$project$Main$ThrowTwo = {$: 2};
+var $author$project$Main$ThrowOne = {$: 2};
+var $author$project$Main$ThrowTwo = {$: 3};
 var $author$project$Glyph$blackCounterStrike = 'data:image/png;base64,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';
 var $timjs$elm_collage$Collage$Core$Image = F2(
 	function (a, b) {
 		return {$: 3, a: a, b: b};
 	});
-var $timjs$elm_collage$Collage$Core$collage = function (basic) {
-	return {
-		A: basic,
-		aN: _List_Nil,
-		aS: $elm$core$Maybe$Nothing,
-		aV: 1,
-		at: 0,
-		av: _Utils_Tuple2(1, 1),
-		C: _Utils_Tuple2(0, 0)
-	};
-};
 var $timjs$elm_collage$Collage$image = function (dims) {
 	return A2(
 		$elm$core$Basics$composeL,
 		$timjs$elm_collage$Collage$Core$collage,
 		$timjs$elm_collage$Collage$Core$Image(dims));
 };
-var $author$project$Main$glyphBW = A2(
-	$timjs$elm_collage$Collage$image,
-	_Utils_Tuple2(60, 60),
-	$author$project$Glyph$blackCounterStrike);
+var $timjs$elm_collage$Collage$scaleXY = F2(
+	function (_v0, collage) {
+		var sx = _v0.a;
+		var sy = _v0.b;
+		var _v1 = collage.ax;
+		var sx0 = _v1.a;
+		var sy0 = _v1.b;
+		return _Utils_update(
+			collage,
+			{
+				ax: _Utils_Tuple2(sx0 * sx, sy0 * sy)
+			});
+	});
+var $timjs$elm_collage$Collage$scale = F2(
+	function (s, collage) {
+		return A2(
+			$timjs$elm_collage$Collage$scaleXY,
+			_Utils_Tuple2(s, s),
+			collage);
+	});
+var $author$project$Main$glyph = function (s) {
+	return A2(
+		$elm$core$Basics$composeL,
+		$timjs$elm_collage$Collage$scale((s / 4) / 60),
+		$timjs$elm_collage$Collage$image(
+			_Utils_Tuple2(60, 60)));
+};
+var $author$project$Main$glyphBW = function (s) {
+	return A2($author$project$Main$glyph, s, $author$project$Glyph$blackCounterStrike);
+};
 var $author$project$Glyph$whiteWeak = 'data:image/png;base64,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';
-var $author$project$Main$glyphWW = A2(
-	$timjs$elm_collage$Collage$image,
-	_Utils_Tuple2(60, 60),
-	$author$project$Glyph$whiteWeak);
+var $author$project$Main$glyphWW = function (s) {
+	return A2($author$project$Main$glyph, s, $author$project$Glyph$whiteWeak);
+};
 var $timjs$elm_collage$Collage$Layout$Right = 2;
 var $timjs$elm_collage$Collage$Layout$envelope = F2(
 	function (dir, col) {
@@ -5923,18 +6404,18 @@ var $timjs$elm_collage$Collage$Core$Uniform = function (a) {
 };
 var $timjs$elm_collage$Collage$uniform = $timjs$elm_collage$Collage$Core$Uniform;
 var $timjs$elm_collage$Collage$defaultLineStyle = {
-	W: 0,
-	M: _List_Nil,
-	Y: 0,
-	aM: $timjs$elm_collage$Collage$uniform($avh4$elm_color$Color$black),
-	af: 1,
-	a_: $timjs$elm_collage$Collage$thin
+	Z: 0,
+	P: _List_Nil,
+	aa: 0,
+	aN: $timjs$elm_collage$Collage$uniform($avh4$elm_color$Color$black),
+	ah: 1,
+	a$: $timjs$elm_collage$Collage$thin
 };
 var $timjs$elm_collage$Collage$broken = F3(
 	function (dashes, thickness, fill) {
 		return _Utils_update(
 			$timjs$elm_collage$Collage$defaultLineStyle,
-			{M: dashes, aM: fill, a_: thickness});
+			{P: dashes, aN: fill, a$: thickness});
 	});
 var $timjs$elm_collage$Collage$solid = $timjs$elm_collage$Collage$broken(_List_Nil);
 var $timjs$elm_collage$Collage$Core$Transparent = {$: 0};
@@ -5994,8 +6475,8 @@ var $author$project$Main$card = F2(
 				_Utils_update(
 					$timjs$elm_collage$Collage$defaultLineStyle,
 					{
-						aM: $timjs$elm_collage$Collage$uniform($avh4$elm_color$Color$black),
-						a_: $timjs$elm_collage$Collage$thick
+						aN: $timjs$elm_collage$Collage$uniform($avh4$elm_color$Color$black),
+						a$: $timjs$elm_collage$Collage$thick
 					})),
 			A3($timjs$elm_collage$Collage$roundedRectangle, w, h, 15));
 	});
@@ -6008,21 +6489,22 @@ var $timjs$elm_collage$Collage$Layout$impose = F2(
 		return $timjs$elm_collage$Collage$Core$collage(
 			A2($timjs$elm_collage$Collage$Core$Subcollage, front, back));
 	});
-var $author$project$Main$menuItem = function (icons) {
-	return A2(
-		$timjs$elm_collage$Collage$Layout$impose,
-		$timjs$elm_collage$Collage$Layout$center(icons),
-		A2($author$project$Main$card, 200, 100));
-};
+var $author$project$Main$menuItem = F2(
+	function (s, icons) {
+		return A2(
+			$timjs$elm_collage$Collage$Layout$impose,
+			$timjs$elm_collage$Collage$Layout$center(icons),
+			A2($author$project$Main$card, s, s / 2));
+	});
 var $timjs$elm_collage$Collage$Events$on = F3(
 	function (event, decoder, collage) {
 		return _Utils_update(
 			collage,
 			{
-				aN: A2(
+				aO: A2(
 					$elm$core$List$cons,
 					_Utils_Tuple2(event, decoder),
-					collage.aN)
+					collage.aO)
 			});
 	});
 var $timjs$elm_collage$Collage$Events$simpleOn = function (event) {
@@ -6036,25 +6518,32 @@ var $timjs$elm_collage$Collage$Layout$vertical = A2(
 	$elm$core$List$foldr,
 	$timjs$elm_collage$Collage$Layout$beside(1),
 	$timjs$elm_collage$Collage$Layout$empty);
-var $author$project$Main$menu = $timjs$elm_collage$Collage$Layout$vertical(
-	_List_fromArray(
-		[
-			A2(
-			$timjs$elm_collage$Collage$Events$onClick,
-			$author$project$Main$ThrowTwo,
-			$author$project$Main$menuItem(
-				$timjs$elm_collage$Collage$Layout$horizontal(
-					_List_fromArray(
-						[
-							$author$project$Main$glyphBW,
-							A2($timjs$elm_collage$Collage$Layout$spacer, 20, 0),
-							$author$project$Main$glyphWW
-						])))),
-			A2(
-			$timjs$elm_collage$Collage$Events$onClick,
-			$author$project$Main$ThrowOne,
-			$author$project$Main$menuItem($author$project$Main$glyphWW))
-		]));
+var $author$project$Main$menu = function (s) {
+	return $timjs$elm_collage$Collage$Layout$vertical(
+		_List_fromArray(
+			[
+				A2(
+				$timjs$elm_collage$Collage$Events$onClick,
+				$author$project$Main$ThrowTwo,
+				A2(
+					$author$project$Main$menuItem,
+					s,
+					$timjs$elm_collage$Collage$Layout$horizontal(
+						_List_fromArray(
+							[
+								$author$project$Main$glyphBW(s),
+								A2($timjs$elm_collage$Collage$Layout$spacer, s / 8, 0),
+								$author$project$Main$glyphWW(s)
+							])))),
+				A2(
+				$timjs$elm_collage$Collage$Events$onClick,
+				$author$project$Main$ThrowOne,
+				A2(
+					$author$project$Main$menuItem,
+					s,
+					$author$project$Main$glyphWW(s)))
+			]));
+};
 var $author$project$Glyph$blackMiss = 'data:image/png;base64,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';
 var $timjs$elm_collage$Collage$Text$Upright = 0;
 var $timjs$elm_collage$Collage$Core$Chunk = F2(
@@ -6065,16 +6554,15 @@ var $timjs$elm_collage$Collage$Text$None = 0;
 var $timjs$elm_collage$Collage$Text$Regular = 2;
 var $timjs$elm_collage$Collage$Text$Sansserif = {$: 1};
 var $timjs$elm_collage$Collage$Text$normal = 16;
-var $timjs$elm_collage$Collage$Text$defaultStyle = {aI: $avh4$elm_color$Color$black, G: 0, ax: 0, aY: $timjs$elm_collage$Collage$Text$normal, a0: $timjs$elm_collage$Collage$Text$Sansserif, a3: 2};
+var $timjs$elm_collage$Collage$Text$defaultStyle = {aJ: $avh4$elm_color$Color$black, H: 0, az: 0, aZ: $timjs$elm_collage$Collage$Text$normal, a1: $timjs$elm_collage$Collage$Text$Sansserif, a4: 2};
 var $timjs$elm_collage$Collage$Text$fromString = $timjs$elm_collage$Collage$Core$Chunk($timjs$elm_collage$Collage$Text$defaultStyle);
-var $timjs$elm_collage$Collage$Text$large = 19;
 var $timjs$elm_collage$Collage$Core$Text = F2(
 	function (a, b) {
 		return {$: 2, a: a, b: b};
 	});
 var $timjs$elm_collage$Collage$Text$height = function (_v0) {
 	var sty = _v0.a;
-	return sty.aY;
+	return sty.aZ;
 };
 var $timjs$elm_collage$Collage$Text$width = function (text) {
 	var sty = text.a;
@@ -6090,6 +6578,7 @@ var $timjs$elm_collage$Collage$rendered = function (text) {
 				$timjs$elm_collage$Collage$Text$height(text)),
 			text));
 };
+var $elm$core$Basics$round = _Basics_round;
 var $timjs$elm_collage$Collage$Text$shape = F2(
 	function (newshape, _v0) {
 		var sty = _v0.a;
@@ -6098,7 +6587,7 @@ var $timjs$elm_collage$Collage$Text$shape = F2(
 			$timjs$elm_collage$Collage$Core$Chunk,
 			_Utils_update(
 				sty,
-				{ax: newshape}),
+				{az: newshape}),
 			str);
 	});
 var $timjs$elm_collage$Collage$Text$size = F2(
@@ -6109,57 +6598,63 @@ var $timjs$elm_collage$Collage$Text$size = F2(
 			$timjs$elm_collage$Collage$Core$Chunk,
 			_Utils_update(
 				sty,
-				{aY: newsize}),
+				{aZ: newsize}),
 			str);
 	});
-var $author$project$Main$label = A2(
-	$elm$core$Basics$composeL,
-	A2(
+var $author$project$Main$label = function (s) {
+	return A2(
 		$elm$core$Basics$composeL,
 		A2(
 			$elm$core$Basics$composeL,
-			$timjs$elm_collage$Collage$rendered,
-			$timjs$elm_collage$Collage$Text$size($timjs$elm_collage$Collage$Text$large)),
-		$timjs$elm_collage$Collage$Text$shape(0)),
-	$timjs$elm_collage$Collage$Text$fromString);
-var $author$project$Main$resultCard = F2(
-	function (img, text) {
+			A2(
+				$elm$core$Basics$composeL,
+				$timjs$elm_collage$Collage$rendered,
+				$timjs$elm_collage$Collage$Text$size(
+					$elm$core$Basics$round(s / 10))),
+			$timjs$elm_collage$Collage$Text$shape(0)),
+		$timjs$elm_collage$Collage$Text$fromString);
+};
+var $author$project$Main$resultCard = F3(
+	function (s, img, text) {
 		return A2(
 			$timjs$elm_collage$Collage$Layout$impose,
 			$timjs$elm_collage$Collage$Layout$vertical(
 				_List_fromArray(
 					[
-						A2(
-						$timjs$elm_collage$Collage$image,
-						_Utils_Tuple2(60, 60),
-						img),
+						A2($author$project$Main$glyph, s * 2, img),
 						A2($timjs$elm_collage$Collage$Layout$spacer, 0, 20),
-						$author$project$Main$label(text)
+						A2($author$project$Main$label, s, text)
 					])),
-			A2($author$project$Main$card, 200, 200));
+			A2($author$project$Main$card, s, s));
 	});
 var $author$project$Glyph$whiteMedium = 'data:image/png;base64,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';
 var $author$project$Glyph$whiteStrong = 'data:image/png;base64,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';
-var $author$project$Main$result = function (x) {
-	switch (x.$) {
-		case 2:
-			return A2($author$project$Main$resultCard, $author$project$Glyph$blackMiss, 'Промах');
-		case 1:
-			return A2($author$project$Main$resultCard, $author$project$Glyph$blackCounterStrike, 'Слабый ответ');
-		default:
-			switch (x.a) {
-				case 0:
-					var _v1 = x.a;
-					return A2($author$project$Main$resultCard, $author$project$Glyph$whiteWeak, 'Слабый удар');
+var $author$project$Main$result = F2(
+	function (s, x) {
+		var _v0 = function () {
+			switch (x.$) {
+				case 2:
+					return _Utils_Tuple2($author$project$Glyph$blackMiss, 'Промах');
 				case 1:
-					var _v2 = x.a;
-					return A2($author$project$Main$resultCard, $author$project$Glyph$whiteMedium, 'Средний удар');
+					return _Utils_Tuple2($author$project$Glyph$blackCounterStrike, 'Слабый ответ');
 				default:
-					var _v3 = x.a;
-					return A2($author$project$Main$resultCard, $author$project$Glyph$whiteStrong, 'Сильный удар');
+					switch (x.a) {
+						case 0:
+							var _v2 = x.a;
+							return _Utils_Tuple2($author$project$Glyph$whiteWeak, 'Слабый удар');
+						case 1:
+							var _v3 = x.a;
+							return _Utils_Tuple2($author$project$Glyph$whiteMedium, 'Средний удар');
+						default:
+							var _v4 = x.a;
+							return _Utils_Tuple2($author$project$Glyph$whiteStrong, 'Сильный удар');
+					}
 			}
-	}
-};
+		}();
+		var g = _v0.a;
+		var t = _v0.b;
+		return A3($author$project$Main$resultCard, s, g, t);
+	});
 var $author$project$Glyph$sourceUrl = 'http://heroes.berserk.ru/old/pages/rules';
 var $elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
 var $elm$html$Html$Attributes$style = $elm$virtual_dom$VirtualDom$style;
@@ -6201,7 +6696,6 @@ var $avh4$elm_color$Color$rgb = F3(
 var $elm$core$String$concat = function (strings) {
 	return A2($elm$core$String$join, '', strings);
 };
-var $elm$core$Basics$round = _Basics_round;
 var $avh4$elm_color$Color$toCssString = function (_v0) {
 	var r = _v0.a;
 	var g = _v0.b;
@@ -6236,13 +6730,13 @@ var $avh4$elm_color$Color$toRgba = function (_v0) {
 	var g = _v0.b;
 	var b = _v0.c;
 	var a = _v0.d;
-	return {z: a, L: b, N: g, R: r};
+	return {z: a, O: b, Q: g, U: r};
 };
 var $timjs$elm_collage$Collage$Render$decodeColor = function (c) {
 	var _v0 = $avh4$elm_color$Color$toRgba(c);
-	var red = _v0.R;
-	var green = _v0.N;
-	var blue = _v0.L;
+	var red = _v0.U;
+	var green = _v0.Q;
+	var blue = _v0.O;
 	return $avh4$elm_color$Color$toCssString(
 		A3($avh4$elm_color$Color$rgb, red, green, blue));
 };
@@ -6283,9 +6777,9 @@ var $elm$core$Tuple$second = function (_v0) {
 	return y;
 };
 var $timjs$elm_collage$Collage$Render$decodeTransform = function (collage) {
-	var sy = $elm$core$String$fromFloat(collage.av.b);
-	var sx = $elm$core$String$fromFloat(collage.av.a);
-	var r = $elm$core$String$fromFloat((((-collage.at) / 2) / $elm$core$Basics$pi) * 360);
+	var sy = $elm$core$String$fromFloat(collage.ax.b);
+	var sx = $elm$core$String$fromFloat(collage.ax.a);
+	var r = $elm$core$String$fromFloat((((-collage.av) / 2) / $elm$core$Basics$pi) * 360);
 	var dy = $elm$core$String$fromFloat(-collage.C.b);
 	var dx = $elm$core$String$fromFloat(collage.C.a);
 	return $elm$core$String$concat(
@@ -6319,24 +6813,24 @@ var $timjs$elm_collage$Collage$Render$attrs = function (collage) {
 			return _List_fromArray(
 				[
 					$elm$svg$Svg$Attributes$stroke(
-					$timjs$elm_collage$Collage$Render$decodeFill(line.aM)),
+					$timjs$elm_collage$Collage$Render$decodeFill(line.aN)),
 					$elm$svg$Svg$Attributes$strokeOpacity(
-					$timjs$elm_collage$Collage$Render$decodeFillOpacity(line.aM)),
+					$timjs$elm_collage$Collage$Render$decodeFillOpacity(line.aN)),
 					$elm$svg$Svg$Attributes$strokeWidth(
-					$elm$core$String$fromFloat(line.a_)),
+					$elm$core$String$fromFloat(line.a$)),
 					$elm$svg$Svg$Attributes$strokeLinecap(
-					$timjs$elm_collage$Collage$Render$decodeCap(line.W)),
+					$timjs$elm_collage$Collage$Render$decodeCap(line.Z)),
 					$elm$svg$Svg$Attributes$strokeLinejoin(
-					$timjs$elm_collage$Collage$Render$decodeJoin(line.af)),
+					$timjs$elm_collage$Collage$Render$decodeJoin(line.ah)),
 					$elm$svg$Svg$Attributes$fill('none'),
 					$elm$svg$Svg$Attributes$opacity(
-					$elm$core$String$fromFloat(collage.aV)),
+					$elm$core$String$fromFloat(collage.aW)),
 					$elm$svg$Svg$Attributes$transform(
 					$timjs$elm_collage$Collage$Render$decodeTransform(collage)),
 					$elm$svg$Svg$Attributes$strokeDashoffset(
-					$elm$core$String$fromInt(line.Y)),
+					$elm$core$String$fromInt(line.aa)),
 					$elm$svg$Svg$Attributes$strokeDasharray(
-					$timjs$elm_collage$Collage$Render$decodeDashing(line.M))
+					$timjs$elm_collage$Collage$Render$decodeDashing(line.P))
 				]);
 		case 0:
 			var _v1 = _v0.a;
@@ -6349,23 +6843,23 @@ var $timjs$elm_collage$Collage$Render$attrs = function (collage) {
 					$elm$svg$Svg$Attributes$fillOpacity(
 					$timjs$elm_collage$Collage$Render$decodeFillOpacity(fill)),
 					$elm$svg$Svg$Attributes$stroke(
-					$timjs$elm_collage$Collage$Render$decodeFill(line.aM)),
+					$timjs$elm_collage$Collage$Render$decodeFill(line.aN)),
 					$elm$svg$Svg$Attributes$strokeOpacity(
-					$timjs$elm_collage$Collage$Render$decodeFillOpacity(line.aM)),
+					$timjs$elm_collage$Collage$Render$decodeFillOpacity(line.aN)),
 					$elm$svg$Svg$Attributes$strokeWidth(
-					$elm$core$String$fromFloat(line.a_)),
+					$elm$core$String$fromFloat(line.a$)),
 					$elm$svg$Svg$Attributes$strokeLinecap(
-					$timjs$elm_collage$Collage$Render$decodeCap(line.W)),
+					$timjs$elm_collage$Collage$Render$decodeCap(line.Z)),
 					$elm$svg$Svg$Attributes$strokeLinejoin(
-					$timjs$elm_collage$Collage$Render$decodeJoin(line.af)),
+					$timjs$elm_collage$Collage$Render$decodeJoin(line.ah)),
 					$elm$svg$Svg$Attributes$opacity(
-					$elm$core$String$fromFloat(collage.aV)),
+					$elm$core$String$fromFloat(collage.aW)),
 					$elm$svg$Svg$Attributes$transform(
 					$timjs$elm_collage$Collage$Render$decodeTransform(collage)),
 					$elm$svg$Svg$Attributes$strokeDashoffset(
-					$elm$core$String$fromInt(line.Y)),
+					$elm$core$String$fromInt(line.aa)),
 					$elm$svg$Svg$Attributes$strokeDasharray(
-					$timjs$elm_collage$Collage$Render$decodeDashing(line.M))
+					$timjs$elm_collage$Collage$Render$decodeDashing(line.P))
 				]);
 		case 2:
 			var _v2 = _v0.b;
@@ -6375,10 +6869,10 @@ var $timjs$elm_collage$Collage$Render$attrs = function (collage) {
 				[
 					$elm$svg$Svg$Attributes$fill(
 					$timjs$elm_collage$Collage$Render$decodeFill(
-						$timjs$elm_collage$Collage$Core$Uniform(style.aI))),
+						$timjs$elm_collage$Collage$Core$Uniform(style.aJ))),
 					$elm$svg$Svg$Attributes$fontFamily(
 					function () {
-						var _v3 = style.a0;
+						var _v3 = style.a1;
 						switch (_v3.$) {
 							case 0:
 								return 'serif';
@@ -6392,10 +6886,10 @@ var $timjs$elm_collage$Collage$Render$attrs = function (collage) {
 						}
 					}()),
 					$elm$svg$Svg$Attributes$fontSize(
-					$elm$core$String$fromInt(style.aY)),
+					$elm$core$String$fromInt(style.aZ)),
 					$elm$svg$Svg$Attributes$fontWeight(
 					function () {
-						var _v4 = style.a3;
+						var _v4 = style.a4;
 						switch (_v4) {
 							case 0:
 								return '200';
@@ -6415,7 +6909,7 @@ var $timjs$elm_collage$Collage$Render$attrs = function (collage) {
 					}()),
 					$elm$svg$Svg$Attributes$fontStyle(
 					function () {
-						var _v5 = style.ax;
+						var _v5 = style.az;
 						switch (_v5) {
 							case 0:
 								return 'normal';
@@ -6429,7 +6923,7 @@ var $timjs$elm_collage$Collage$Render$attrs = function (collage) {
 					}()),
 					$elm$svg$Svg$Attributes$fontVariant(
 					function () {
-						var _v6 = style.ax;
+						var _v6 = style.az;
 						if (_v6 === 1) {
 							return 'small-caps';
 						} else {
@@ -6438,7 +6932,7 @@ var $timjs$elm_collage$Collage$Render$attrs = function (collage) {
 					}()),
 					$elm$svg$Svg$Attributes$textDecoration(
 					function () {
-						var _v7 = style.G;
+						var _v7 = style.H;
 						switch (_v7) {
 							case 0:
 								return 'none';
@@ -6453,7 +6947,7 @@ var $timjs$elm_collage$Collage$Render$attrs = function (collage) {
 					$elm$svg$Svg$Attributes$textAnchor('middle'),
 					$elm$svg$Svg$Attributes$dominantBaseline('middle'),
 					$elm$svg$Svg$Attributes$opacity(
-					$elm$core$String$fromFloat(collage.aV)),
+					$elm$core$String$fromFloat(collage.aW)),
 					$elm$svg$Svg$Attributes$transform(
 					$timjs$elm_collage$Collage$Render$decodeTransform(collage))
 				]);
@@ -6461,7 +6955,7 @@ var $timjs$elm_collage$Collage$Render$attrs = function (collage) {
 			return _List_fromArray(
 				[
 					$elm$svg$Svg$Attributes$opacity(
-					$elm$core$String$fromFloat(collage.aV)),
+					$elm$core$String$fromFloat(collage.aW)),
 					$elm$svg$Svg$Attributes$transform(
 					$timjs$elm_collage$Collage$Render$decodeTransform(collage))
 				]);
@@ -6555,7 +7049,7 @@ var $elm$svg$Svg$Attributes$xlinkHref = function (value) {
 var $timjs$elm_collage$Collage$Render$render = function (collage) {
 	render:
 	while (true) {
-		var name = A2($elm$core$Maybe$withDefault, '_unnamed_', collage.aS);
+		var name = A2($elm$core$Maybe$withDefault, '_unnamed_', collage.aT);
 		var _v0 = collage.A;
 		switch (_v0.$) {
 			case 1:
@@ -6573,7 +7067,7 @@ var $timjs$elm_collage$Collage$Render$render = function (collage) {
 							]),
 						_Utils_ap(
 							$timjs$elm_collage$Collage$Render$attrs(collage),
-							$timjs$elm_collage$Collage$Render$events(collage.aN))),
+							$timjs$elm_collage$Collage$Render$events(collage.aO))),
 					_List_Nil);
 			case 0:
 				var _v2 = _v0.a;
@@ -6594,7 +7088,7 @@ var $timjs$elm_collage$Collage$Render$render = function (collage) {
 									]),
 								_Utils_ap(
 									$timjs$elm_collage$Collage$Render$attrs(collage),
-									$timjs$elm_collage$Collage$Render$events(collage.aN))),
+									$timjs$elm_collage$Collage$Render$events(collage.aO))),
 							_List_Nil);
 					case 3:
 						var r = shape.a;
@@ -6609,7 +7103,7 @@ var $timjs$elm_collage$Collage$Render$render = function (collage) {
 									]),
 								_Utils_ap(
 									$timjs$elm_collage$Collage$Render$attrs(collage),
-									$timjs$elm_collage$Collage$Render$events(collage.aN))),
+									$timjs$elm_collage$Collage$Render$events(collage.aO))),
 							_List_Nil);
 					case 2:
 						var rx = shape.a;
@@ -6627,7 +7121,7 @@ var $timjs$elm_collage$Collage$Render$render = function (collage) {
 									]),
 								_Utils_ap(
 									$timjs$elm_collage$Collage$Render$attrs(collage),
-									$timjs$elm_collage$Collage$Render$events(collage.aN))),
+									$timjs$elm_collage$Collage$Render$events(collage.aO))),
 							_List_Nil);
 					case 1:
 						var w = shape.a;
@@ -6648,7 +7142,7 @@ var $timjs$elm_collage$Collage$Render$render = function (collage) {
 									A2($timjs$elm_collage$Collage$Render$box, w, h),
 									_Utils_ap(
 										$timjs$elm_collage$Collage$Render$attrs(collage),
-										$timjs$elm_collage$Collage$Render$events(collage.aN)))),
+										$timjs$elm_collage$Collage$Render$events(collage.aO)))),
 							_List_Nil);
 					default:
 						var path = shape.a;
@@ -6673,7 +7167,7 @@ var $timjs$elm_collage$Collage$Render$render = function (collage) {
 							]),
 						_Utils_ap(
 							$timjs$elm_collage$Collage$Render$attrs(collage),
-							$timjs$elm_collage$Collage$Render$events(collage.aN))),
+							$timjs$elm_collage$Collage$Render$events(collage.aO))),
 					_List_fromArray(
 						[
 							$elm$svg$Svg$text(str)
@@ -6695,7 +7189,7 @@ var $timjs$elm_collage$Collage$Render$render = function (collage) {
 							A2($timjs$elm_collage$Collage$Render$box, w, h),
 							_Utils_ap(
 								$timjs$elm_collage$Collage$Render$attrs(collage),
-								$timjs$elm_collage$Collage$Render$events(collage.aN)))),
+								$timjs$elm_collage$Collage$Render$events(collage.aO)))),
 					_List_Nil);
 			case 4:
 				var _v6 = _v0.a;
@@ -6715,7 +7209,7 @@ var $timjs$elm_collage$Collage$Render$render = function (collage) {
 							_Utils_ap(
 								$timjs$elm_collage$Collage$Render$attrs(collage),
 								_Utils_ap(
-									$timjs$elm_collage$Collage$Render$events(collage.aN),
+									$timjs$elm_collage$Collage$Render$events(collage.aO),
 									extraAttrs)))),
 					_List_fromArray(
 						[html]));
@@ -6728,7 +7222,7 @@ var $timjs$elm_collage$Collage$Render$render = function (collage) {
 						$elm$svg$Svg$Attributes$id(name),
 						_Utils_ap(
 							$timjs$elm_collage$Collage$Render$attrs(collage),
-							$timjs$elm_collage$Collage$Render$events(collage.aN))),
+							$timjs$elm_collage$Collage$Render$events(collage.aO))),
 					A3(
 						$elm$core$List$foldl,
 						F2(
@@ -6795,59 +7289,77 @@ var $timjs$elm_collage$Collage$Render$svgBox = F2(
 				collage));
 	});
 var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
+var $author$project$Main$scene = F3(
+	function (w, h, t) {
+		var s = A2($elm$core$Basics$min, w, (h - 80) - 30);
+		return A2(
+			$timjs$elm_collage$Collage$Render$svgBox,
+			_Utils_Tuple2(w, h),
+			$timjs$elm_collage$Collage$Layout$center(
+				$timjs$elm_collage$Collage$Layout$vertical(
+					_List_fromArray(
+						[
+							A3(
+							$timjs$elm_collage$Collage$html,
+							_Utils_Tuple2(w, 80),
+							_List_Nil,
+							A2(
+								$elm$html$Html$h3,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Кубики для'),
+										A2($elm$html$Html$br, _List_Nil, _List_Nil),
+										$elm$html$Html$text(' Берсерка')
+									]))),
+							A2(
+							$elm$core$Maybe$withDefault,
+							$author$project$Main$menu(s),
+							A2(
+								$elm$core$Maybe$map,
+								A2(
+									$elm$core$Basics$composeL,
+									$timjs$elm_collage$Collage$Events$onClick(
+										$author$project$Main$Set($elm$core$Maybe$Nothing)),
+									$author$project$Main$result(s)),
+								t)),
+							A3(
+							$timjs$elm_collage$Collage$html,
+							_Utils_Tuple2(w, 30),
+							_List_Nil,
+							A2(
+								$elm$html$Html$a,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$href($author$project$Glyph$sourceUrl),
+										A2($elm$html$Html$Attributes$style, 'font-size', 'x-small')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Изображения взяты здесь')
+									])))
+						]))));
+	});
 var $author$project$Main$view = function (model) {
 	return {
-		aG: _List_fromArray(
+		aH: _List_fromArray(
 			[
-				A2(
-				$elm$html$Html$h3,
-				_List_Nil,
-				_List_fromArray(
-					[
-						$elm$html$Html$text('Кубики для'),
-						A2($elm$html$Html$br, _List_Nil, _List_Nil),
-						$elm$html$Html$text(' Берсерка')
-					])),
-				A2(
-				$timjs$elm_collage$Collage$Render$svgBox,
-				_Utils_Tuple2(220, 220),
-				$timjs$elm_collage$Collage$Layout$center(
-					A2(
-						$elm$core$Maybe$withDefault,
-						$author$project$Main$menu,
-						A2(
-							$elm$core$Maybe$map,
-							A2(
-								$elm$core$Basics$composeL,
-								$timjs$elm_collage$Collage$Events$onClick(
-									$author$project$Main$Set($elm$core$Maybe$Nothing)),
-								$author$project$Main$result),
-							model)))),
-				A2(
-				$elm$html$Html$a,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$href($author$project$Glyph$sourceUrl),
-						A2($elm$html$Html$Attributes$style, 'font-size', 'small')
-					]),
-				_List_fromArray(
-					[
-						$elm$html$Html$text('Изображения взяты здесь')
-					]))
+				A3($author$project$Main$scene, model.M, model.G, model.N)
 			]),
-		a$: 'Кубики для Берсерка'
+		a0: 'Кубики для Берсерка'
 	};
 };
 var $author$project$Main$main = $elm$browser$Browser$document(
 	{
-		aR: function (_v0) {
-			return _Utils_Tuple2($elm$core$Maybe$Nothing, $elm$core$Platform$Cmd$none);
-		},
-		aZ: function (_v1) {
-			return $elm$core$Platform$Sub$none;
-		},
-		a1: $author$project$Main$update,
-		a2: $author$project$Main$view
+		aS: $author$project$Main$init,
+		a_: $elm$core$Basics$always(
+			$elm$browser$Browser$Events$onResize(
+				F2(
+					function (w, h) {
+						return A2($author$project$Main$Resize, w, h);
+					}))),
+		a2: $author$project$Main$update,
+		a3: $author$project$Main$view
 	});
 _Platform_export({'Main':{'init':$author$project$Main$main(
 	$elm$json$Json$Decode$succeed(0))(0)}});}(this));

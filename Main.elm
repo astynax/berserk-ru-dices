@@ -1,6 +1,8 @@
 module Main exposing (main)
 
 import Browser
+import Browser.Dom
+import Browser.Events
 import Collage as C exposing (defaultLineStyle)
 import Collage.Events as Events
 import Collage.Layout as Layout
@@ -11,14 +13,19 @@ import Glyph
 import Html exposing (Html)
 import Html.Attributes as HA
 import Random
+import Task
 
 
 type alias Model =
-    Maybe Throw
+    { throw : Maybe Throw
+    , width : Float
+    , height : Float
+    }
 
 
 type Msg
-    = Set Model
+    = Set (Maybe Throw)
+    | Resize Float Float
     | ThrowOne
     | ThrowTwo
 
@@ -38,17 +45,41 @@ type Throw
 main : Program () Model Msg
 main =
     Browser.document
-        { init = \() -> ( Nothing, Cmd.none )
+        { init = init
         , view = view
         , update = update
-        , subscriptions = \_ -> Sub.none
+        , subscriptions =
+            always <|
+                Browser.Events.onResize
+                    (\w h -> Resize (toFloat w) (toFloat h))
         }
 
 
+init () =
+    ( { throw = Nothing
+      , width = 200
+      , height = 300
+      }
+    , Task.perform (\vp -> Resize vp.viewport.width vp.viewport.height)
+        Browser.Dom.getViewport
+    )
+
+
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        Resize w h ->
+            ( { model
+                | width = w
+                , height = h - 10
+              }
+            , Cmd.none
+            )
+
         Set value ->
-            ( value, Cmd.none )
+            ( { model | throw = value }
+            , Cmd.none
+            )
 
         ThrowOne ->
             ( model, Random.generate (Set << Just) strikeThrow )
@@ -60,24 +91,34 @@ update msg model =
 view : Model -> Browser.Document Msg
 view model =
     { title = "Кубики для Берсерка"
-    , body =
-        [ Html.h3 []
-            [ Html.text "Кубики для"
-            , Html.br [] []
-            , Html.text " Берсерка"
-            ]
-        , svgBox ( 220, 220 ) <|
-            Layout.center <|
-                Maybe.withDefault menu <|
-                    Maybe.map (Events.onClick (Set Nothing) << result)
-                        model
-        , Html.a
-            [ HA.href Glyph.sourceUrl
-            , HA.style "font-size" "small"
-            ]
-            [ Html.text "Изображения взяты здесь" ]
-        ]
+    , body = [ scene model.width model.height model.throw ]
     }
+
+
+scene w h t =
+    let
+        s =
+            min w (h - 80 - 30)
+    in
+    svgBox ( w, h ) <|
+        Layout.center <|
+            Layout.vertical
+                [ C.html ( w, 80 ) [] <|
+                    Html.h3 []
+                        [ Html.text "Кубики для"
+                        , Html.br [] []
+                        , Html.text " Берсерка"
+                        ]
+                , Maybe.withDefault (menu s) <|
+                    Maybe.map (Events.onClick (Set Nothing) << result s)
+                        t
+                , C.html ( w, 30 ) [] <|
+                    Html.a
+                        [ HA.href Glyph.sourceUrl
+                        , HA.style "font-size" "x-small"
+                        ]
+                        [ Html.text "Изображения взяты здесь" ]
+                ]
 
 
 card w h =
@@ -92,63 +133,71 @@ card w h =
         C.roundedRectangle w h 15
 
 
-label =
+label s =
     C.rendered
-        << Text.size Text.large
+        << Text.size (round <| s / 10)
         << Text.shape Text.Upright
         << Text.fromString
 
 
-glyphBW =
-    C.image ( 60, 60 ) Glyph.blackCounterStrike
+glyph s =
+    C.scale (s / 4 / 60) << C.image ( 60, 60 )
 
 
-glyphWW =
-    C.image ( 60, 60 ) Glyph.whiteWeak
+glyphBW s =
+    glyph s Glyph.blackCounterStrike
 
 
-menu =
+glyphWW s =
+    glyph s Glyph.whiteWeak
+
+
+menu s =
     Layout.vertical
         [ Events.onClick ThrowTwo <|
-            menuItem <|
+            menuItem s <|
                 Layout.horizontal
-                    [ glyphBW, Layout.spacer 20 0, glyphWW ]
+                    [ glyphBW s, Layout.spacer (s / 8) 0, glyphWW s ]
         , Events.onClick ThrowOne <|
-            menuItem glyphWW
+            menuItem s (glyphWW s)
         ]
 
 
-menuItem icons =
-    Layout.impose (Layout.center icons) <| card 200 100
+menuItem s icons =
+    Layout.impose (Layout.center icons) <| card s (s / 2)
 
 
-resultCard img text =
+resultCard s img text =
     Layout.impose
         (Layout.vertical
-            [ C.image ( 60, 60 ) img
+            [ glyph (s * 2) img
             , Layout.spacer 0 20
-            , label text
+            , label s text
             ]
         )
-        (card 200 200)
+        (card s s)
 
 
-result x =
-    case x of
-        Miss ->
-            resultCard Glyph.blackMiss "Промах"
+result s x =
+    let
+        ( g, t ) =
+            case x of
+                Miss ->
+                    ( Glyph.blackMiss, "Промах" )
 
-        CounterStrike ->
-            resultCard Glyph.blackCounterStrike "Слабый ответ"
+                CounterStrike ->
+                    ( Glyph.blackCounterStrike, "Слабый ответ" )
 
-        Strike WeakStrike ->
-            resultCard Glyph.whiteWeak "Слабый удар"
+                Strike WeakStrike ->
+                    ( Glyph.whiteWeak, "Слабый удар" )
 
-        Strike MediumStrike ->
-            resultCard Glyph.whiteMedium "Средний удар"
+                Strike MediumStrike ->
+                    ( Glyph.whiteMedium, "Средний удар" )
 
-        Strike StrongStrike ->
-            resultCard Glyph.whiteStrong "Сильный удар"
+                Strike StrongStrike ->
+                    ( Glyph.whiteStrong, "Сильный удар" )
+    in
+    resultCard s g t
 
 
 
